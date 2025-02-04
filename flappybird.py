@@ -11,7 +11,7 @@ game_font = pygame.font.Font('font/04B_19.TTF', 40)
 clock = pygame.time.Clock()
 
 # Create bien game
-gravity = 0.25
+gravity = 0.23
 bird_movement = 0
 game_active = True
 score = 0
@@ -34,9 +34,6 @@ bird_up = pygame.transform.scale2x(pygame.image.load('assests/yellowbird-upflap.
 bird_list = [bird_down, bird_mid, bird_up]
 bird_index = 0
 bird = bird_list[bird_index]
-
-#bird = pygame.image.load('assests/yellowbird-midflap.png')
-#bird = pygame.transform.scale2x(bird)
 bird_rect = bird.get_rect(center = (100, 374))
 
 birdflap = pygame.USEREVENT + 1
@@ -59,7 +56,7 @@ game_over_rect = game_over_surface.get_rect(center =(216, 374))
 flap_sound = pygame.mixer.Sound('sound/sfx_swooshing.wav')
 hit_sound = pygame.mixer.Sound('sound/sfx_hit.wav')
 score_sound = pygame.mixer.Sound('sound/sfx_point.wav')
-score_sound_coutdown = 100
+score_sound_coutdown = 210
 # Hàm tạo sàn
 def draw_floor():
     screen.blit(floor,(floor_x_pos,640))
@@ -68,14 +65,14 @@ def draw_floor():
 # Hàm tạo ống
 def create_pipe():
     random_pipe_pos = random.choice(pipe_height)
-    bottom_pipe = pipe_surface.get_rect(midtop = (500, random_pipe_pos))
-    top_pipe = pipe_surface.get_rect(midtop = (500, random_pipe_pos-650))
+    bottom_pipe = pipe_surface.get_rect(midtop = (480, random_pipe_pos))
+    top_pipe = pipe_surface.get_rect(midtop = (480, random_pipe_pos-720))
     return bottom_pipe, top_pipe
 
 # Hàm di chuyển ống
 def move_pipe(pipes):
     for pipe in pipes:
-        pipe.centerx -= 5
+        pipe.centerx -= 4
     return pipes
 
 # Hàm vẽ ống
@@ -128,7 +125,9 @@ def update_score(score, high_score):
     if score > high_score:
         high_score = score
     return high_score
-# Vòng lặp game    
+# Vòng lặp game
+passed_pipes = []
+previous_score = 0  # Ban đầu đặt khác điểm số thực tế    
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -137,7 +136,7 @@ while True:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE and game_active:
                 bird_movement = 0
-                bird_movement = -11
+                bird_movement = -7
                 flap_sound.play()
             if event.key == pygame.K_SPACE and game_active == False:
                 game_active = True
@@ -145,6 +144,7 @@ while True:
                 bird_rect.center = (100,374)
                 bird_movement = 0
                 score = 0
+                previous_score = 0
         if event.type == spawnpipe:
             pipe_list.extend(create_pipe())
         if event.type == birdflap:
@@ -168,12 +168,20 @@ while True:
         # Ông
         pipe_list = move_pipe(pipe_list)
         draw_pipe(pipe_list)
-        score += 0.01
+
         score_display('main game')
-        score_sound_coutdown -= 1
-        if score_sound_coutdown <= 0:
+
+        # Kiểm tra điểm khi chim vượt qua giữa hai cột
+        for pipe in pipe_list:
+            if pipe.bottom >= 748 and pipe not in passed_pipes:  # Kiểm tra cột dưới
+                if bird_rect.left > pipe.right:  # Chim đã vượt qua cột
+                    score += 1
+                    score_sound.play()
+                    passed_pipes.append(pipe)
+
+        if int(score) > previous_score and int(score) % 1 == 0:
             score_sound.play()
-            score_sound_coutdown = 100
+            previous_score = int(score)
     else:
         screen.blit(game_over_surface, game_over_rect)
         high_score = update_score(score, high_score)
